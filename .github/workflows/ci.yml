@@ -1,0 +1,56 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies (Build)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Code Quality Check
+        run: |
+          flake8 app.py test_app.py --max-line-length=120
+
+      - name: Run automated tests with pytest
+        run: |
+          pytest -v --cov=app --junitxml=pytest-report.xml
+
+      - name: Create build artifact
+        run: |
+          mkdir -p artifact
+          cp app.py requirements.txt pytest-report.xml artifact/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-app-build
+          path: artifact/
+
+      - name: Deploy to Test Environment
+        run: |
+          echo "=========================================="
+          echo "Deploying Student App to Test Environment"
+          echo "=========================================="
+          echo "Deployment timestamp: $(date)"
+          echo "Artifacts verified in artifact/ directory:"
+          ls -la artifact/
+          echo "Simulating application startup check in test environment..."
+          python -c "import app; print('App imported successfully, test environment check passed!')"
+          echo "Deployment to Test Environment completed successfully."
